@@ -1,37 +1,39 @@
- 
-int main()
+ int main()
 {
     printf("\n\tservice is start.....\n");
-    pthread_t tid1,tid2;
-    int fd,clientfd,wr_fifo;
-    socklen_t  sock_len;
-    sock_len= sizeof(struct sockaddr_in);
+    pthread_t tid1,tid2;//创建线程
+    int fd,clientfd,wr_fifo;//套接字文件描述符
+    socklen_t  sock_len;//建立套接字关键字
+    sock_len= sizeof(struct sockaddr_in);//地址长度
 
-    mkfifo(FIFO,O_CREAT|O_EXCL);
-    pthread_create(&tid1,NULL,SendMsg,NULL);
+    mkfifo(FIFO,O_CREAT|O_EXCL);//建立实名管道
+    pthread_create(&tid1,NULL,SendMsg,NULL);//创建接收消息的线程
 
-    struct  sockaddr_in server,client;
-    server.sin_port=htons(PORT);
-    server.sin_family=AF_INET;
-    server.sin_addr.s_addr=INADDR_ANY;
-    if(-1== (fd=socket(AF_INET,SOCK_STREAM,0)))
+    struct  sockaddr_in server,client;//本地地址
+    server.sin_port=htons(PORT);//服务器端口
+    server.sin_family=AF_INET;////AF_INET协议族
+    server.sin_addr.s_addr=INADDR_ANY;//任意本地地址
+    if(-1== (fd=socket(AF_INET,SOCK_STREAM,0)))//建立套接字
     {
         perror("socket error ");
         exit(1);
     }
 
-    if(-1==bind(fd,(struct sockaddr*)&server,sock_len))
+    //绑定套接口
+    if(-1==bind(fd,(struct sockaddr*)&server,sock_len))//将&server结构体强制转换成struct sockaddr*类型
     {
         perror("bind error");
         exit(2);
     }
 
+    //侦听
     if(-1==(listen(fd,MAX_CLIENT+1)))
     {
         perror("listen error");
         exit(3);
     }
-
+    
+    //打开管道fifo
     if(-1==(wr_fifo=open(FIFO,O_WRONLY)))
     {
         perror("open fifo error");
@@ -39,14 +41,14 @@ int main()
     }
     while(1)
     {
-        if(-1==(clientfd=(accept(fd,(struct sockaddr*)&client,&sock_len))))
+        if(-1==(clientfd=(accept(fd,(struct sockaddr*)&client,&sock_len))))//接收客户端连接
         {
             perror("accept error");
             exit(4);
         }
-        int locate=-1;
-        MESSAGE msg;
-        if(-1==(locate=SearchLocate()))
+        int locate=-1;//自身定位为-1
+        MESSAGE msg;//创建信息结构体
+        if(-1==(locate=SearchLocate()))//找到最新的还未定位的客户端结构体，产生定位
         {
             printf("\e[33m*RECEIVE A APPLY BUT CANNOT ALLOW CONNECT\e[0m\n");
             msg.type=EXIT;
@@ -59,14 +61,14 @@ int main()
             arg.locate=locate;
             msg.type=OK;
             memcpy(&msg.clientList,&clientList,sizeof(clientList));
-            msg.fromUserLocate=locate;
-            write(clientfd,&msg,sizeof(msg));
-            clientList[locate].socketFd=clientfd;
-            pthread_create(&tid1,NULL,RecvMsg,(void *)&arg);
+            msg.fromUserLocate=locate;//发件人的定位
+            write(clientfd,&msg,sizeof(msg));//把文件写到客户端接口
+            clientList[locate].socketFd=clientfd;//客户端链表标记为接口信息
+            pthread_create(&tid1,NULL,RecvMsg,(void *)&arg);//创建接受消息的线程
         }
     }
     pthread_join(tid1,NULL);
-    pthread_join(tid2,NULL);
-    unlink("FIFO");
+    pthread_join(tid2,NULL);//结束两个线程
+    unlink("FIFO");//关闭fifo管道
     return 0;
 }

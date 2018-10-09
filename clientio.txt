@@ -1,0 +1,110 @@
+void *RecvMsg(void *fd)
+{
+    int sockfd=*(int *)fd;
+    MESSAGE msg;
+    while(1)
+    {
+        bzero(&msg,sizeof(msg));
+        msg.type=ERROR;
+        read(sockfd,&msg,sizeof(msg));
+        
+        if(msg.type==ERROR)
+            break;
+        switch(msg.type)
+        {
+            case LOGIN:
+                if(msg.fromUserLocate==g_locate)
+                    printf("\e[34m######  >  loing succeed\e[0m\n");
+                else
+                    printf("\e[33m#LOGIN  > From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
+                break;
+            case EXIT:
+                printf("\e[33m#EXIT   > From:%-10s Msg:%s\e[0m\n",clientList[msg.fromUserLocate].name,msg.message);
+                break;
+            case PUBLIC:
+                printf("\e[32m#PUBLIC > From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
+                break;
+            case PRIVATE:
+                printf("\e[31m#PRIVATE> From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
+                break;
+            default:
+                break;
+            
+        }
+        memcpy(&clientList,&msg.clientList,sizeof(clientList));
+        
+    }
+    printf("server is breakdown \n");
+    exit(1);
+    
+}
+
+void SendMsg(int fd)
+{
+    MESSAGE msg;
+    msg.type=LOGIN;
+    msg.fromUserLocate=g_locate;
+    strcpy(msg.fromUser,g_name);
+    strcpy(msg.message,g_name);
+    write(fd,&msg,sizeof(msg));
+    
+    int tmp[MAX_CLIENT];
+    int  key;
+    while(1)
+    {
+        printf(" 1 public  2 private 3 EXIT 4 client list\n");
+        if(1!= scanf("%d",&key))
+        {
+            key=0;
+            flush();
+        }
+        bzero(&msg,sizeof(msg));
+        strcpy(msg.fromUser,g_name);
+        msg.fromUserLocate=g_locate;
+        switch(key)
+        {
+            case 1:
+                msg.type=PUBLIC;
+                printf("\npublic: please input content \n");
+                flush();
+                fgets(msg.message,sizeof(msg.message),stdin);
+                msg.message[strlen(msg.message)-1]='\0';
+                write(fd,&msg,sizeof(msg));
+                break;
+            case 2:
+                    bzero(tmp,sizeof(tmp));
+                    msg.type=PRIVATE;
+                    if(-1!=(msg.sendUserLocate=MakeTempList(tmp)))
+                    {
+                        printf("\nprivate: please input content \n");
+                        flush();
+                        fgets(msg.message,sizeof(msg.message),stdin);
+                        msg.message[strlen(msg.message)-1]='\0';
+                        write(fd,&msg,sizeof(msg));
+                    }
+                break;
+            case 3:
+                printf("EXIT \n");
+                msg.type=EXIT;
+                strcpy(msg.message,"bye-bye");
+                write(fd,&msg,sizeof(msg));
+                break;
+            case 4:
+                ShowList();
+                break;
+            default:
+                printf("bad select  \n");
+                msg.type=0;
+                break;
+        }
+        if(msg.type==EXIT)
+        {
+            break;
+        }
+        
+    }
+    pthread_cancel(tid1);
+}
+
+
+

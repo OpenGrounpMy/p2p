@@ -1,0 +1,61 @@
+struct ARG
+{
+    int locate;
+    int fifoFd;
+};
+
+int SearchLocate()
+{
+    int i;
+    for(i=0;i<MAX_CLIENT;i++)
+    {
+        if(clientList[i].socketFd==0)
+            break;
+        
+    }
+    if(i<MAX_CLIENT) 
+        return i;
+    else  
+        return -1;
+}
+
+void TransmitMsg(int cmd,int locate,MESSAGE msg)
+{
+    
+    memcpy(&msg.clientList,&clientList,sizeof(clientList));
+    if(cmd==PRIVATE)
+    {
+    
+        write(clientList[msg.sendUserLocate].socketFd,&msg,sizeof(msg));
+        printf("\e[31m#PRIVATE >  From:%-5s  To:  %-5s  Msg:%s\e[0m\n",clientList[locate].name,clientList[msg.sendUserLocate].name,msg.message);
+    }else{
+        int i;
+        for (i=0;i<MAX_CLIENT;i++)
+        {
+            if(clientList[i].socketFd!=0 && i!=locate)
+            {
+                write(clientList[i].socketFd,&msg,sizeof(msg));
+                printf("\e[32m#PUBLIC  >  From:%-5s  To:  %-5s Msg:%s\e[0m\n",clientList[locate].name,clientList[i].name,msg.message);
+            }
+        }
+        if(cmd==LOGIN)
+        {
+            write(clientList[locate].socketFd,&msg,sizeof(msg));
+        }
+    }
+}
+
+void UpdateList(int cmd , char *name,int locate)
+{
+    if(cmd==ADD)
+    {
+        strcpy(clientList[locate].name,name);
+        printf("\e[33m*ADD USER> NAME:%-5s  \e[0m\n",clientList[locate].name);
+    }
+    else if(cmd==DEL)
+    {
+        printf("\e[33m*DEl USER> NAME:%-5s \e[0m\n",clientList[locate].name);
+        clientList[locate].socketFd=0;
+        bzero(clientList[locate].name,NAME_LEN);
+    }
+} 

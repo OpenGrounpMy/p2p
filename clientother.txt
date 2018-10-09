@@ -1,4 +1,3 @@
- 
 void flush()
 {
     char c;
@@ -18,7 +17,7 @@ int CheckExist()
     }
     if(i<MAX_CLIENT)
     {
-        printf("this name: %s is already exist!!\n",g_name);
+        printf("这个名字：%s 已经用过了。\n",g_name);
         return 1;
     }
     else
@@ -33,7 +32,7 @@ void  ShowList()
     printf("\t _____________________________ \n");
     printf("\t|         CLIENT LIST         |\n");
     printf("\t|_____________________________|\n");
-    printf("\t|\e[4m  sort   |      name       \e[24m|\n ");
+    printf("\t|\e[4m  序号   |       名字        \e[24m|\n ");
 
     for(i=0;i<MAX_CLIENT;i++)
     {
@@ -41,12 +40,12 @@ void  ShowList()
         {
             if(i==g_locate)
             {
-                printf("\t|\e[4;31m *%-4d   |       %-10s\e[0m|\n",++g_total,clientList[i].name);
+                printf("\t|\e[4;31m *%-4d   |     %-10s    \e[0m|\n",++g_total,clientList[i].name,clientList[i].chatnow);
                 
             }
             else
             {
-                printf("\t|\e[4m   %-4d  |       %-10s\e[24m|\n",++g_total,clientList[i].name);
+                printf("\t|\e[4m   %-4d  |     %-10s    \e[24m|\n",++g_total,clientList[i].name,clientList[i].chatnow);
                 
             }
             
@@ -70,11 +69,11 @@ int MakeTempList(int *tmp)
     }
     ShowList();
     int select;
-    printf("please select the user \n");
+    printf("请选择你要发送文件的对象 \n");
     if(1!=scanf("%d",&select))
     {
         flush();
-        printf("bad select \n");
+        printf("没有这个人 \n");
         return -1;
         
     }
@@ -82,7 +81,7 @@ int MakeTempList(int *tmp)
     {
         if(tmp[select-1]==g_locate)
         {
-            printf("\e[33m#SYSTEM:YOU CAN NOT SELECT YOURSELF\e[0m\n");
+            printf("\e[33m#你不能发消息给你自己；\e[0m\n");
             return -1;
             
         }
@@ -92,7 +91,7 @@ int MakeTempList(int *tmp)
     }
     else
     {
-        printf("bad select \n");
+        printf("没有这个选项 \n");
         return -1;
         
     }

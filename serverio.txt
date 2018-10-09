@@ -1,0 +1,78 @@
+void *RecvMsg(void *arg_t)
+{
+    struct ARG arg=*(struct ARG *)arg_t;
+    MESSAGE msg;
+    while(1)
+    {
+        int flag;
+        bzero(&msg,sizeof(msg));  msg.type=ERROR;
+        read(clientList[arg.locate].socketFd,&msg,sizeof(msg));
+        msg.fromUserLocate=arg.locate;
+        if(msg.type==EXIT||msg.type==ERROR)
+        {
+            if(msg.type==ERROR)
+            {
+                strcpy(msg.message,"breakdown");
+                printf("\e[33m*CLIENT:%s HAD BREAKDOWN\e[0m\n",clientList[msg.fromUserLocate].name);
+                msg.type=EXIT;
+            }
+            if(-1==(flag=write(arg.fifoFd,&msg,sizeof(msg))))
+            {
+                perror("write fifo error");
+                exit(1);
+            }
+            break;
+        }
+        if(-1==(flag=write(arg.fifoFd,&msg,sizeof(msg))))
+        {
+            perror("write fifo error");
+            exit(1);
+        }
+    }
+    return NULL;
+}
+
+void *SendMsg(void *fd)
+{
+    int fifoFd;
+    if(-1==(fifoFd=open(FIFO,O_RDONLY)))
+    {
+        perror("open fifo error");
+        exit(1);
+    }
+    int flag;
+    MESSAGE msg;
+    while(1)
+    {
+        if(-1==(flag=read(fifoFd,&msg,sizeof(msg))))
+        {
+            perror("read fifo error");
+            exit(2);
+        } 
+        int exit_fd;
+        switch(msg.type)
+        {
+            case LOGIN:
+                UpdateList(ADD,msg.fromUser,msg.fromUserLocate);
+                TransmitMsg(LOGIN,msg.fromUserLocate,msg);
+                break;
+            case PUBLIC:
+                TransmitMsg(PUBLIC,msg.fromUserLocate,msg);
+                break;
+            case PRIVATE:
+                TransmitMsg(PRIVATE,msg.fromUserLocate,msg);
+                break;
+            case EXIT:
+                exit_fd=clientList[msg.fromUserLocate].socketFd;
+                UpdateList(DEL,msg.fromUser,msg.fromUserLocate);
+                TransmitMsg(EXIT,msg.fromUserLocate,msg);
+                close(exit_fd);
+                break;
+            default:
+        //printf("bad data %d\n",msg.type);
+                break;    
+        }
+    }
+    return NULL;
+}
+ 

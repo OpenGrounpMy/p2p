@@ -1,46 +1,55 @@
 int main()
 {
     int fd;
+    strcpy(lose,"抱歉，现在该用户正在忙。\n");
     char ip[20];//="192.168.43.31";
-    printf("please input the ip \n");scanf("%s",ip);
+    printf("请输入你要连接服务器的ip地址：\n");scanf("%s",ip);
     struct sockaddr_in addr;
+    //初始化addr的信息
     addr.sin_port=htons(PORT);
     addr.sin_family=AF_INET;
     addr.sin_addr.s_addr=inet_addr(ip);
-    if(-1==(fd=socket(AF_INET,SOCK_STREAM,0)))
+    if(-1==(fd=socket(AF_INET,SOCK_STREAM,0)))//fd为套接字的接口
     {
-        perror("socket error");
+        perror("socket error/建立套接字失败");
         exit(1);
         
     }
     if(-1==(connect(fd,(struct sockaddr*)&addr,sizeof(struct
-        sockaddr))))
+        sockaddr))))//把套接字的接口与地址相连接
     {
-        perror("connect error");
+        perror("connect error/连接失败");
         exit(2);
         
     }
-    MESSAGE msg;
-
-    read(fd,&msg,sizeof(msg));
-    if(msg.type==EXIT)
+    if((stream = fopen("recond","a"))==NULL)
     {
-        printf("service refuse connect \n");
+        perror("创建文件失败");
+        exit(3);
+    }
+    fclose(stream);
+    MESSAGE msg;//创建一个信息的结构体
+
+    read(fd,&msg,sizeof(msg));//从fd接口处读取信息保存到msg中
+    if(msg.type==EXIT)//如果msg.type为EXIT类型，则表明连接失败
+    {
+        printf("service refuse connect/服务连接失败 \n");
         exit(1);
         
     }
     else
-    {
+    {//如果连接成功，则把msg。clientList中的信息复制到clientList中
         memcpy(&clientList,&msg.clientList,sizeof(clientList));
         g_locate=msg.fromUserLocate;
-        pthread_create(&tid1,NULL,RecvMsg,(void *)&fd);
+        pthread_create(&tid1,NULL,RecvMsg,(void *)&fd);//运行接收消息的线程
         do{
-            printf("please input your name\n");scanf("%s",g_name);
+            printf("请输入你的名字：\n");scanf("%s",g_name);
             
         }while(CheckExist());
-        SendMsg(fd);
-        pthread_join(tid1,NULL);
+        SendMsg(fd);//发送消息
+        pthread_join(tid1,NULL);//结束接收消息线程
         
     }
     return 0;
-} 
+}
+

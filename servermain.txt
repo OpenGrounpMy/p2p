@@ -1,0 +1,72 @@
+ 
+int main()
+{
+    printf("\n\tservice is start.....\n");
+    pthread_t tid1,tid2;
+    int fd,clientfd,wr_fifo;
+    socklen_t  sock_len;
+    sock_len= sizeof(struct sockaddr_in);
+
+    mkfifo(FIFO,O_CREAT|O_EXCL);
+    pthread_create(&tid1,NULL,SendMsg,NULL);
+
+    struct  sockaddr_in server,client;
+    server.sin_port=htons(PORT);
+    server.sin_family=AF_INET;
+    server.sin_addr.s_addr=INADDR_ANY;
+    if(-1== (fd=socket(AF_INET,SOCK_STREAM,0)))
+    {
+        perror("socket error ");
+        exit(1);
+    }
+
+    if(-1==bind(fd,(struct sockaddr*)&server,sock_len))
+    {
+        perror("bind error");
+        exit(2);
+    }
+
+    if(-1==(listen(fd,MAX_CLIENT+1)))
+    {
+        perror("listen error");
+        exit(3);
+    }
+
+    if(-1==(wr_fifo=open(FIFO,O_WRONLY)))
+    {
+        perror("open fifo error");
+        exit(1);
+    }
+    while(1)
+    {
+        if(-1==(clientfd=(accept(fd,(struct sockaddr*)&client,&sock_len))))
+        {
+            perror("accept error");
+            exit(4);
+        }
+        int locate=-1;
+        MESSAGE msg;
+        if(-1==(locate=SearchLocate()))
+        {
+            printf("\e[33m*RECEIVE A APPLY BUT CANNOT ALLOW CONNECT\e[0m\n");
+            msg.type=EXIT;
+            write(clientfd,&msg,sizeof(msg));
+        }
+        else
+        {
+            struct ARG arg;
+            arg.fifoFd=wr_fifo;
+            arg.locate=locate;
+            msg.type=OK;
+            memcpy(&msg.clientList,&clientList,sizeof(clientList));
+            msg.fromUserLocate=locate;
+            write(clientfd,&msg,sizeof(msg));
+            clientList[locate].socketFd=clientfd;
+            pthread_create(&tid1,NULL,RecvMsg,(void *)&arg);
+        }
+    }
+    pthread_join(tid1,NULL);
+    pthread_join(tid2,NULL);
+    unlink("FIFO");
+    return 0;
+}

@@ -1,0 +1,99 @@
+ 
+void flush()
+{
+    char c;
+    do{
+	c=getc(stdin);
+    }while(c!='\n'&&c!=EOF);
+}
+
+int CheckExist()
+{
+    int i;
+    for(i=0;i<MAX_CLIENT;i++)
+    {
+        if(!strcmp(g_name,clientList[i].name))
+            break;
+
+    }
+    if(i<MAX_CLIENT)
+    {
+        printf("this name: %s is already exist!!\n",g_name);
+        return 1;
+    }
+    else
+        return 0;
+    
+}
+void  ShowList()
+{
+    int i;
+    g_total=0;
+
+    printf("\t _____________________________ \n");
+    printf("\t|         CLIENT LIST         |\n");
+    printf("\t|_____________________________|\n");
+    printf("\t|\e[4m  sort   |      name       \e[24m|\n ");
+
+    for(i=0;i<MAX_CLIENT;i++)
+    {
+        if(clientList[i].socketFd!=0)
+        {
+            if(i==g_locate)
+            {
+                printf("\t|\e[4;31m *%-4d   |       %-10s\e[0m|\n",++g_total,clientList[i].name);
+                
+            }
+            else
+            {
+                printf("\t|\e[4m   %-4d  |       %-10s\e[24m|\n",++g_total,clientList[i].name);
+                
+            }
+            
+        }
+        
+    }
+    printf("\t|\e[4m  Total:%-3d     \e[24m|\n",g_total);
+}
+
+int MakeTempList(int *tmp)
+{
+    int i,n=0;
+    for(i=0;i<MAX_CLIENT;i++)
+    {
+        if(clientList[i].socketFd!=0)
+        { 
+	    tmp[n]=i;
+	    n++; 
+	}
+        
+    }
+    ShowList();
+    int select;
+    printf("please select the user \n");
+    if(1!=scanf("%d",&select))
+    {
+        flush();
+        printf("bad select \n");
+        return -1;
+        
+    }
+    if(select<=g_total)
+    {
+        if(tmp[select-1]==g_locate)
+        {
+            printf("\e[33m#SYSTEM:YOU CAN NOT SELECT YOURSELF\e[0m\n");
+            return -1;
+            
+        }
+        else
+            return tmp[select-1];
+        
+    }
+    else
+    {
+        printf("bad select \n");
+        return -1;
+        
+    }
+}

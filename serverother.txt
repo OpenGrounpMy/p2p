@@ -19,15 +19,16 @@ int SearchLocate()
         return -1;
 }
 
+
 void TransmitMsg(int cmd,int locate,MESSAGE msg)
 {
     
-    memcpy(&msg.clientList,&clientList,sizeof(clientList));
+    memcpy(&msg.clientList,&clientList,sizeof(clientList));//拷贝字节
     if(cmd==PRIVATE)
     {
     
         write(clientList[msg.sendUserLocate].socketFd,&msg,sizeof(msg));
-        printf("\e[31m#PRIVATE >  From:%-5s  To:  %-5s  Msg:%s\e[0m\n",clientList[locate].name,clientList[msg.sendUserLocate].name,msg.message);
+        printf("\e[31m#聊天 >  发件人:%-5s  收件人:  %-5s  消息内容:%s\e[0m\n",clientList[locate].name,clientList[msg.sendUserLocate].name,msg.message);
     }else{
         int i;
         for (i=0;i<MAX_CLIENT;i++)
@@ -35,7 +36,7 @@ void TransmitMsg(int cmd,int locate,MESSAGE msg)
             if(clientList[i].socketFd!=0 && i!=locate)
             {
                 write(clientList[i].socketFd,&msg,sizeof(msg));
-                printf("\e[32m#PUBLIC  >  From:%-5s  To:  %-5s Msg:%s\e[0m\n",clientList[locate].name,clientList[i].name,msg.message);
+                printf("\e[32m#公告  >  发件人:%-5s  收件人:  %-5s 消息:%s\e[0m\n",clientList[locate].name,clientList[i].name,msg.message);
             }
         }
         if(cmd==LOGIN)
@@ -50,12 +51,12 @@ void UpdateList(int cmd , char *name,int locate)
     if(cmd==ADD)
     {
         strcpy(clientList[locate].name,name);
-        printf("\e[33m*ADD USER> NAME:%-5s  \e[0m\n",clientList[locate].name);
+        printf("\e[33m*用户上线> 名字:%-5s  \e[0m\n",clientList[locate].name);
     }
     else if(cmd==DEL)
     {
-        printf("\e[33m*DEl USER> NAME:%-5s \e[0m\n",clientList[locate].name);
+        printf("\e[33m*用户下线> 名字:%-5s \e[0m\n",clientList[locate].name);
         clientList[locate].socketFd=0;
         bzero(clientList[locate].name,NAME_LEN);
     }
-} 
+}

@@ -1,0 +1,46 @@
+int main()
+{
+    int fd;
+    char ip[20];//="192.168.43.31";
+    printf("please input the ip \n");scanf("%s",ip);
+    struct sockaddr_in addr;
+    addr.sin_port=htons(PORT);
+    addr.sin_family=AF_INET;
+    addr.sin_addr.s_addr=inet_addr(ip);
+    if(-1==(fd=socket(AF_INET,SOCK_STREAM,0)))
+    {
+        perror("socket error");
+        exit(1);
+        
+    }
+    if(-1==(connect(fd,(struct sockaddr*)&addr,sizeof(struct
+        sockaddr))))
+    {
+        perror("connect error");
+        exit(2);
+        
+    }
+    MESSAGE msg;
+
+    read(fd,&msg,sizeof(msg));
+    if(msg.type==EXIT)
+    {
+        printf("service refuse connect \n");
+        exit(1);
+        
+    }
+    else
+    {
+        memcpy(&clientList,&msg.clientList,sizeof(clientList));
+        g_locate=msg.fromUserLocate;
+        pthread_create(&tid1,NULL,RecvMsg,(void *)&fd);
+        do{
+            printf("please input your name\n");scanf("%s",g_name);
+            
+        }while(CheckExist());
+        SendMsg(fd);
+        pthread_join(tid1,NULL);
+        
+    }
+    return 0;
+} 

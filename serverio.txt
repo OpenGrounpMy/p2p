@@ -1,11 +1,12 @@
-void *RecvMsg(void *arg_t)
+void *RecvMsg(void *arg_t)//接受消息
 {
     struct ARG arg=*(struct ARG *)arg_t;
     MESSAGE msg;
     while(1)
     {
         int flag;
-        bzero(&msg,sizeof(msg));  msg.type=ERROR;
+        bzero(&msg,sizeof(msg));  
+        msg.type=ERROR;
         read(clientList[arg.locate].socketFd,&msg,sizeof(msg));
         msg.fromUserLocate=arg.locate;
         if(msg.type==EXIT||msg.type==ERROR)
@@ -32,7 +33,7 @@ void *RecvMsg(void *arg_t)
     return NULL;
 }
 
-void *SendMsg(void *fd)
+void *SendMsg(void *fd)//发送消息
 {
     int fifoFd;
     if(-1==(fifoFd=open(FIFO,O_RDONLY)))
@@ -75,4 +76,3 @@ void *SendMsg(void *fd)
     }
     return NULL;
 }
- 

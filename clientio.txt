@@ -1,6 +1,7 @@
 void *RecvMsg(void *fd)
 {
     int sockfd=*(int *)fd;
+    int fd1;
     MESSAGE msg;
     while(1)
     {
@@ -12,21 +13,57 @@ void *RecvMsg(void *fd)
             break;
         switch(msg.type)
         {
-            case LOGIN:
+            case LOGIN://成功连接与成员连接公告
                 if(msg.fromUserLocate==g_locate)
-                    printf("\e[34m######  >  loing succeed\e[0m\n");
+                    printf("\e[34m######  >  成功进入聊天\e[0m\n");
                 else
-                    printf("\e[33m#LOGIN  > From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
+                    printf("\e[33m#加入> 名字：%s\e[0m\n",msg.fromUser);
                 break;
-            case EXIT:
-                printf("\e[33m#EXIT   > From:%-10s Msg:%s\e[0m\n",clientList[msg.fromUserLocate].name,msg.message);
+            case EXIT://退出
+                printf("\e[33m#退出> 名字：%s\e[0m\n",clientList[msg.fromUserLocate].name);
                 break;
-            case PUBLIC:
+            /*case PUBLIC:
                 printf("\e[32m#PUBLIC > From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
-                break;
-            case PRIVATE:
-                printf("\e[31m#PRIVATE> From:%-10s Msg:%s\e[0m\n",msg.fromUser,msg.message);
-                break;
+                break;*/
+            case PRIVATE://接收消息
+                if(flag==-1){
+                    printf("\e[31m#聊天> 发件人:%-10s \n信息内容:%s\e[0m\n",msg.fromUser,msg.message);
+                    strcpy(file,"文件来自：");
+                    strcat(file,msg.fromUser);
+                    strcat(file,"   信息内容：");
+                    strcat(file,msg.message);
+                    strcat(file,"\n");
+                    if((stream = fopen("recond","a"))==NULL)
+                    {
+                        perror("书写文件失败");
+                        exit(3);
+                    }
+                    fputs(file,stream);
+                    fclose(stream);
+                    break;
+                  //  printf("sorry, the user don't want chat with you.");
+                    break;
+                }else{
+                    if(flag==msg.fromUserLocate)
+                    {
+                        printf("\e[31m#聊天> 发件人:%-10s \n信息内容:%s\e[0m\n",msg.fromUser,msg.message);
+                        strcpy(file,"文件来自：");
+                        strcat(file,msg.fromUser);
+                        strcat(file,"   信息内容：");
+                        strcat(file,msg.message);
+                        strcat(file,"\n");
+                        if((stream = fopen("recond","a"))==NULL)
+                        {
+                            perror("书写文件失败");
+                            exit(3);
+                        }
+                        fputs(file,stream);
+                        fclose(stream);
+                        break;
+                    }else{
+                        printf("现在 %s 正在尝试连接你，但你不会收到他发的消息\n",msg.fromUser);
+                    }
+                }
             default:
                 break;
             
@@ -41,62 +78,115 @@ void *RecvMsg(void *fd)
 
 void SendMsg(int fd)
 {
-    MESSAGE msg;
-    msg.type=LOGIN;
-    msg.fromUserLocate=g_locate;
-    strcpy(msg.fromUser,g_name);
-    strcpy(msg.message,g_name);
-    write(fd,&msg,sizeof(msg));
+    MESSAGE msg;//创建一个信息的结构体
+    msg.type=LOGIN;//消息类型为进入服务器类型
+    msg.fromUserLocate=g_locate;//消息发件人为自己
+    strcpy(msg.fromUser,g_name);//把发件人的名字设置成自己
+    strcpy(msg.message,g_name);//把发件人的信息也改成自己的名字
+    write(fd,&msg,sizeof(msg));//传送给服务器，让服务器通知各个客户端我已经进入聊天室
     
-    int tmp[MAX_CLIENT];
-    int  key;
+    int tmp[MAX_CLIENT];//建立int类型的数组
+    int  key;//建立int类型的key来存放选项
+    int m;
     while(1)
     {
-        printf(" 1 public  2 private 3 EXIT 4 client list\n");
+        printf("请选择你要使用的功能：\n");
+        printf(" \t1 进行聊天\n  \t2 查看聊天记录\n \t3 退出聊天\n \t4 用户列表\n");
         if(1!= scanf("%d",&key))
         {
             key=0;
             flush();
-        }
-        bzero(&msg,sizeof(msg));
-        strcpy(msg.fromUser,g_name);
-        msg.fromUserLocate=g_locate;
-        switch(key)
-        {
-            case 1:
-                msg.type=PUBLIC;
-                printf("\npublic: please input content \n");
-                flush();
-                fgets(msg.message,sizeof(msg.message),stdin);
-                msg.message[strlen(msg.message)-1]='\0';
-                write(fd,&msg,sizeof(msg));
-                break;
-            case 2:
-                    bzero(tmp,sizeof(tmp));
-                    msg.type=PRIVATE;
-                    if(-1!=(msg.sendUserLocate=MakeTempList(tmp)))
-                    {
-                        printf("\nprivate: please input content \n");
-                        flush();
-                        fgets(msg.message,sizeof(msg.message),stdin);
-                        msg.message[strlen(msg.message)-1]='\0';
-                        write(fd,&msg,sizeof(msg));
+        }//输入选择
+        bzero(&msg,sizeof(msg));//把信息清空
+        strcpy(msg.fromUser,g_name);//信息发件人是自己
+        msg.fromUserLocate=g_locate;//信息发件人定位是自己的定位
+        if(key==2){
+            int a;
+            if((stream = fopen("recond","r"))==NULL)
+            {
+                perror("读取文件失败");
+                exit(3);
+            }
+            while(1){
+                if(fgets(buf,100,stream) == 0){
+                    if(feof(stream)){
+                        printf("文件结束了。\n");
+                        break;
+                    }else{
+                        perror("读取失败");
+                        break;
                     }
-                break;
-            case 3:
-                printf("EXIT \n");
-                msg.type=EXIT;
-                strcpy(msg.message,"bye-bye");
-                write(fd,&msg,sizeof(msg));
-                break;
-            case 4:
-                ShowList();
-                break;
-            default:
-                printf("bad select  \n");
-                msg.type=0;
-                break;
+                }
+                fputs(buf,stdout);
+                printf("是否继续读取？ 1继续 2停止");
+                scanf("%d",&a);
+                if(a==2) break;
+                else if(a==1) continue;
+                else printf("抱歉，没有这个选项。\n");
+            }
+            fclose(stream);
+            
+        }else if(key==1){//进行聊天
+            m=MakeTempList(tmp);
+            flag=m;
+            if(m!=-1)
+            {
+                //msg.clientList[m].chatnow=g_locate;//把我的聊天状态改为忙
+                //clientList[m].chatnow=g_locate;
+                msg.sendUserLocate=m;//发送信息对象定位确定
+                msg.type=PRIVATE;//信息类型确定
+                
+                printf("\n可以开始聊天了\n输入 q 就代表着你要结束这次的聊天\n\n");
+                flush();
+                
+                while(1){//输入消息内容
+                    //msg.clientList[g_locate].chatnow=m;//把我的聊天状态改为忙
+                    //clientList[g_locate].chatnow=m+1;//我的状态忙碌
+                    fgets(msg.message,sizeof(msg.message),stdin);
+                    msg.message[strlen(msg.message)-1]='\0';
+                    if(strcmp(msg.message,"q")==0){//如果输入q则退出聊天
+                        //clientList[g_locate].chatnow=0;
+                        //msg.clientList[m].chatnow=0;//把我的聊天状态改为忙
+                        //clientList[m].chatnow=0;
+                        //msg.clientList[g_locate].chatnow=0;
+                        strcpy(file,"\n");
+                        if((stream = fopen("recond","a"))==NULL)
+                        {
+                            perror("书写文件失败");
+                            exit(3);
+                        }
+                        fputs(file,stream);
+                        fclose(stream);
+                        break;
+                    }
+                    strcpy(file,"文件发给：");
+                    strcat(file,msg.fromUser);
+                    strcat(file,"   信息内容：");
+                    strcat(file,msg.message);
+                    strcat(file,"\n");
+                    if((stream = fopen("recond","a"))==NULL)
+                    {
+                        perror("书写文件失败");
+                        exit(3);
+                    }
+                    fputs(file,stream);
+                    fclose(stream);
+                    write(fd,&msg,sizeof(msg));//把消息写入fd接口
+                }
+                bzero(tmp,sizeof(tmp));
+            }
+        }else if(key==3){
+            printf("EXIT \n");
+            msg.type=EXIT;
+            strcpy(msg.message,"再见");
+            write(fd,&msg,sizeof(msg));
+        }else if(key==4){
+            ShowList();
+        }else{
+            printf("这个选项错误 \n");
+            msg.type=0;
         }
+
         if(msg.type==EXIT)
         {
             break;
@@ -105,6 +195,3 @@ void SendMsg(int fd)
     }
     pthread_cancel(tid1);
 }
-
-
-
